@@ -3,7 +3,7 @@
 FastAPI backend for the Waitlist app, implementing the contract in
 [`../_docs/openapi.yaml`](../_docs/openapi.yaml). Persisted with SQLAlchemy;
 see [`../_docs/specs.md`](../_docs/specs.md) for the open questions that will
-shape the eventual production backend/database choice.
+shape the eventual production database choice.
 
 Field names and enums match the frontend's existing API client
 (`frontend/src/api/waitlistApi.ts`) exactly.

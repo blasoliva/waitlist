@@ -15,13 +15,14 @@ Customers can join the waitlist through **all of the following**:
 ## Platform (Build Order)
 - Start with a **Frontend prototype** first.
 
-## Open Questions (need answers to finalize spec)
-1. **Backend stack** — Node.js (Express/Fastify), Python (FastAPI/Django), other, or recommend one?
-2. **Customer notifications** — SMS, push notification, both, or none for v1 (staff calls name)?
-3. **Multi-tenancy** — single restaurant only, multi-restaurant SaaS, multi-location chain, or undecided?
+## Tech Stack
+- **Frontend**: React, TypeScript, Vite, Tailwind CSS (see `frontend/`)
+- **Backend**: Python, FastAPI (see `backend/`)
+- **Database**: SQLite for local development, accessed via SQLAlchemy (database-agnostic — see `backend/README.md#database`)
 
 ## Next Steps
-- Answer the open questions above.
-- Define data model (waitlist entries, tables, parties, statuses).
-- Define core API endpoints (add to waitlist, update status, notify, remove/seat).
-- Define host-facing features (drag/reorder queue, estimated wait time, table assignment).
+- Data model, core API endpoints, and host-facing features are implemented — see `_docs/openapi.yaml`, `backend/`, and `frontend/`.
+- Decide on customer notifications (SMS, push notification, both, or none for v1 — staff calls name).
+- Decide on multi-tenancy (single restaurant, multi-restaurant SaaS, multi-location chain).
+- Add authentication/authorization for host/staff users (none yet).
+- Decide on a deployment target and production database.

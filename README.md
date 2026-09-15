@@ -36,7 +36,7 @@ _docs/       Specs and the OpenAPI contract (openapi.yaml)
 
 - **Frontend**: React, TypeScript, Vite, Tailwind CSS, React Router, dnd-kit
 - **Backend**: FastAPI (Python), SQLAlchemy, managed with [uv](https://docs.astral.sh/uv/)
-- **Database**: SQLite by default (dev), database-agnostic via SQLAlchemy — see [`backend/README.md`](backend/README.md#database)
+- **Database**: SQLite for local development, accessed via SQLAlchemy (database-agnostic) — see [`backend/README.md`](backend/README.md#database)
 
 ## Getting Started
 
@@ -84,14 +84,6 @@ Each test runs against its own fresh, seeded, in-memory SQLite database — inde
 ### Frontend
 
 No automated test suite yet. `npm run build` type-checks the app, and `npm run lint` runs the linter.
-
-## Open Questions
-
-The following decisions are still pending:
-
-1. **Database** — SQLite is used for local development; production database engine is undecided.
-2. **Customer notifications** — SMS, push notifications, both, or staff calls name for v1?
-3. **Multi-tenancy** — Single restaurant, multi-restaurant SaaS, or multi-location chain?
 
 ## License
 
