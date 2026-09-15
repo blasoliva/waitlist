@@ -1,0 +1,360 @@
+openapi: 3.1.0
+info:
+  title: Waitlist API
+  description: >
+    Restaurant waitlist management API. Backs the host dashboard, kiosk
+    self check-in, and remote join flows described in _docs/specs.md.
+    Field names and enums are chosen to match the frontend's existing
+    mock API (frontend/src/api/waitlistApi.ts) exactly, so the frontend
+    can be pointed at this backend without changing its data model.
+  version: 0.1.0
+
+servers:
+  - url: http://localhost:8000/api
+    description: Local development
+
+tags:
+  - name: parties
+  - name: tables
+
+paths:
+  /parties:
+    get:
+      tags: [parties]
+      summary: List all parties
+      operationId: listParties
+      responses:
+        '200':
+          description: All parties, across every status
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Party'
+    post:
+      tags: [parties]
+      summary: Add a party to the waitlist
+      description: >
+        Used by all three join methods (host stand entry, kiosk
+        self check-in, remote join) — the `source` field distinguishes them.
+      operationId: addParty
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddPartyRequest'
+      responses:
+        '201':
+          description: The newly created party, in `waiting` status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Party'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /parties/reorder:
+    post:
+      tags: [parties]
+      summary: Reorder the waiting queue
+      description: Sets the queue position of each listed party to its index in `orderedIds`.
+      operationId: reorderQueue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReorderRequest'
+      responses:
+        '200':
+          description: All parties, with updated positions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Party'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /parties/estimate-wait:
+    get:
+      tags: [parties]
+      summary: Estimate current wait time for a given party size
+      operationId: estimateWait
+      parameters:
+        - name: partySize
+          in: query
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Estimated wait in minutes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WaitEstimate'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+
+  /parties/{partyId}/notify:
+    post:
+      tags: [parties]
+      summary: Mark a party as notified (table ready)
+      operationId: notifyParty
+      parameters:
+        - $ref: '#/components/parameters/PartyId'
+      responses:
+        '200':
+          description: The updated party
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Party'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /parties/{partyId}/seat:
+    post:
+      tags: [parties]
+      summary: Seat a party at a table
+      description: Marks the party `seated` and the table `occupied`.
+      operationId: seatParty
+      parameters:
+        - $ref: '#/components/parameters/PartyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SeatRequest'
+      responses:
+        '200':
+          description: The updated party
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Party'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: The table is already occupied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /parties/{partyId}/remove:
+    post:
+      tags: [parties]
+      summary: Remove a party from the waitlist
+      description: Soft-delete — sets status to `removed` rather than deleting the record.
+      operationId: removeParty
+      parameters:
+        - $ref: '#/components/parameters/PartyId'
+      responses:
+        '200':
+          description: The updated party
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Party'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /tables:
+    get:
+      tags: [tables]
+      summary: List all tables
+      operationId: listTables
+      responses:
+        '200':
+          description: All tables
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Table'
+
+  /tables/{tableId}/free:
+    post:
+      tags: [tables]
+      summary: Mark a table free
+      description: Used when a seated party finishes and leaves.
+      operationId: freeTable
+      parameters:
+        - $ref: '#/components/parameters/TableId'
+      responses:
+        '200':
+          description: The updated table
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Table'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  parameters:
+    PartyId:
+      name: partyId
+      in: path
+      required: true
+      schema:
+        type: string
+    TableId:
+      name: tableId
+      in: path
+      required: true
+      schema:
+        type: string
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ValidationError:
+      description: Request failed validation
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+
+  schemas:
+    PartyStatus:
+      type: string
+      enum: [waiting, notified, seated, removed]
+    JoinSource:
+      type: string
+      enum: [host, kiosk, remote]
+    TableStatus:
+      type: string
+      enum: [available, occupied]
+
+    Party:
+      type: object
+      required:
+        - id
+        - name
+        - phone
+        - partySize
+        - status
+        - source
+        - createdAt
+        - quotedWaitMinutes
+        - position
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        phone:
+          type: string
+        partySize:
+          type: integer
+          minimum: 1
+        status:
+          $ref: '#/components/schemas/PartyStatus'
+        source:
+          $ref: '#/components/schemas/JoinSource'
+        notes:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        quotedWaitMinutes:
+          type: integer
+          minimum: 0
+        tableId:
+          type: string
+          nullable: true
+        position:
+          type: integer
+
+    Table:
+      type: object
+      required:
+        - id
+        - label
+        - capacity
+        - status
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        capacity:
+          type: integer
+          minimum: 1
+        status:
+          $ref: '#/components/schemas/TableStatus'
+        partyId:
+          type: string
+          nullable: true
+
+    AddPartyRequest:
+      type: object
+      required:
+        - name
+        - phone
+        - partySize
+        - source
+      properties:
+        name:
+          type: string
+          minLength: 1
+        phone:
+          type: string
+          minLength: 1
+        partySize:
+          type: integer
+          minimum: 1
+        source:
+          $ref: '#/components/schemas/JoinSource'
+        notes:
+          type: string
+          nullable: true
+
+    SeatRequest:
+      type: object
+      required:
+        - tableId
+      properties:
+        tableId:
+          type: string
+
+    ReorderRequest:
+      type: object
+      required:
+        - orderedIds
+      properties:
+        orderedIds:
+          type: array
+          items:
+            type: string
+
+    WaitEstimate:
+      type: object
+      required:
+        - minutes
+      properties:
+        minutes:
+          type: integer
+          minimum: 0
+
+    Error:
+      type: object
+      required:
+        - detail
+      properties:
+        detail:
+          type: string
