@@ -1,14 +1,27 @@
 # Waitlist API
 
 FastAPI backend for the Waitlist app, implementing the contract in
-[`../_docs/openapi.yaml`](../_docs/openapi.yaml). Persistence is currently an in-memory
-mock store (`src/app/store.py`) — no real database yet; see
-[`../_docs/specs.md`](../_docs/specs.md) for the open questions that will
-decide the real backend/database.
+[`../_docs/openapi.yaml`](../_docs/openapi.yaml). Persisted with SQLAlchemy;
+see [`../_docs/specs.md`](../_docs/specs.md) for the open questions that will
+shape the eventual production backend/database choice.
 
-Field names and enums match the frontend's existing mock API
-(`frontend/src/api/waitlistApi.ts`) exactly, so the frontend can eventually
-be pointed at this server without changing its data model.
+Field names and enums match the frontend's existing API client
+(`frontend/src/api/waitlistApi.ts`) exactly.
+
+## Database
+
+Persistence is via SQLAlchemy against `DATABASE_URL` (default:
+`sqlite:///./waitlist.db`, created and seeded automatically on first run).
+The app is database-agnostic: `app/db_models.py` and `app/repository.py`
+only use SQLAlchemy's generic column types and query API, never
+dialect-specific SQL. To point at a different database, set `DATABASE_URL`
+and install the matching driver, e.g.:
+
+```sh
+DATABASE_URL=postgresql+psycopg://user:pass@localhost/waitlist uv add psycopg[binary]
+```
+
+No application code needs to change.
 
 ## Setup
 
@@ -29,7 +42,9 @@ CORS is enabled for `http://localhost:5173` (the Vite dev server).
 ## Test
 
 Tests were written first, against the OpenAPI contract, before the routes
-were implemented.
+were implemented. Each test runs against its own fresh, seeded, in-memory
+SQLite database (see `tests/conftest.py`) — no dependency on the dev
+database file.
 
 ```sh
 uv run pytest
