@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -15,10 +16,18 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Waitlist API", version="0.1.0", lifespan=lifespan)
 
-# Local Vite dev server for the frontend (frontend/).
+# Comma-separated list of origins the frontend is served from. Defaults to
+# the local Vite dev server; set CORS_ALLOWED_ORIGINS when deploying the
+# frontend elsewhere (e.g. "https://waitlist.example.com").
+allowed_origins = [
+    origin.strip()
+    for origin in os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=allowed_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

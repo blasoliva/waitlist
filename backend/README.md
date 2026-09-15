@@ -37,7 +37,13 @@ uv run uvicorn app.main:app --app-dir src --reload --port 8000
 
 Interactive docs: http://localhost:8000/docs
 
-CORS is enabled for `http://localhost:5173` (the Vite dev server).
+CORS defaults to allowing `http://localhost:5173` (the Vite dev server). If
+the frontend is deployed elsewhere, set `CORS_ALLOWED_ORIGINS` to a
+comma-separated list of the origin(s) it's served from, e.g.:
+
+```sh
+CORS_ALLOWED_ORIGINS=https://waitlist.example.com,http://localhost:5173
+```
 
 ## Test
 
