@@ -1,4 +1,5 @@
 import { Route, Routes } from 'react-router-dom'
+import { ErrorBanner } from './components/ErrorBanner'
 import { Nav } from './components/Nav'
 import { WaitlistProvider } from './context/WaitlistContext'
 import { HostDashboard } from './pages/HostDashboard'
@@ -11,6 +12,7 @@ function App() {
     <WaitlistProvider>
       <div className="min-h-screen bg-stone-100">
         <Nav />
+        <ErrorBanner />
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/host" element={<HostDashboard />} />
