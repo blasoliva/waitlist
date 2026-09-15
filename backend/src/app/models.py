@@ -10,7 +10,9 @@ def to_camel(snake: str) -> str:
 
 
 class CamelModel(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    # from_attributes lets Party.model_validate(party_row) build a response
+    # straight from an ORM row, not just a dict.
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True, from_attributes=True)
 
 
 class PartyStatus(str, Enum):

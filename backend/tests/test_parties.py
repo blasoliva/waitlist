@@ -78,6 +78,22 @@ def test_add_party_invalid_source_is_rejected(client):
     assert res.status_code == 422
 
 
+def test_add_party_zero_party_size_is_rejected(client):
+    res = client.post(
+        "/api/parties",
+        json={"name": "Novak", "phone": "555-0199", "partySize": 0, "source": "host"},
+    )
+    assert res.status_code == 422
+
+
+def test_add_party_empty_name_is_rejected(client):
+    res = client.post(
+        "/api/parties",
+        json={"name": "", "phone": "555-0199", "partySize": 2, "source": "host"},
+    )
+    assert res.status_code == 422
+
+
 def test_notify_party_sets_status_notified(client):
     party_id = client.get("/api/parties").json()[0]["id"]
     res = client.post(f"/api/parties/{party_id}/notify")
@@ -155,6 +171,30 @@ def test_reorder_queue_unknown_id_returns_404(client):
     assert res.status_code == 404
 
 
+def test_reorder_queue_leaves_omitted_parties_untouched(client):
+    parties = client.get("/api/parties").json()
+    untouched = next(p for p in parties if p["name"] == "Patel")
+    others = [p["id"] for p in parties if p["id"] != untouched["id"]]
+
+    client.post("/api/parties/reorder", json={"orderedIds": list(reversed(others))})
+
+    refreshed = next(p for p in client.get("/api/parties").json() if p["id"] == untouched["id"])
+    assert refreshed["position"] == untouched["position"]
+
+
+def test_new_party_position_is_not_reused_after_removal(client):
+    parties = client.get("/api/parties").json()
+    highest = max(p["position"] for p in parties)
+    highest_party = next(p for p in parties if p["position"] == highest)
+
+    client.post(f"/api/parties/{highest_party['id']}/remove")
+    new_party = client.post(
+        "/api/parties", json={"name": "Newcomer", "phone": "1", "partySize": 2, "source": "kiosk"}
+    ).json()
+
+    assert new_party["position"] > highest
+
+
 def test_estimate_wait_scales_with_party_size(client):
     small = client.get("/api/parties/estimate-wait", params={"partySize": 2}).json()["minutes"]
     large = client.get("/api/parties/estimate-wait", params={"partySize": 6}).json()["minutes"]
@@ -171,3 +211,24 @@ def test_estimate_wait_scales_with_current_queue(client):
 def test_estimate_wait_missing_party_size_returns_422(client):
     res = client.get("/api/parties/estimate-wait")
     assert res.status_code == 422
+
+
+def test_estimate_wait_zero_party_size_returns_422(client):
+    res = client.get("/api/parties/estimate-wait", params={"partySize": 0})
+    assert res.status_code == 422
+
+
+def test_estimate_wait_excludes_non_waiting_parties(client):
+    baseline = client.get("/api/parties/estimate-wait", params={"partySize": 2}).json()["minutes"]
+
+    party = client.post(
+        "/api/parties", json={"name": "Extra", "phone": "1", "partySize": 2, "source": "kiosk"}
+    ).json()
+    with_extra = client.get("/api/parties/estimate-wait", params={"partySize": 2}).json()["minutes"]
+    assert with_extra > baseline
+
+    table_id = client.get("/api/tables").json()[0]["id"]
+    client.post(f"/api/parties/{party['id']}/seat", json={"tableId": table_id})
+
+    after_seating = client.get("/api/parties/estimate-wait", params={"partySize": 2}).json()["minutes"]
+    assert after_seating == baseline
