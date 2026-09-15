@@ -2,6 +2,8 @@
 
 A restaurant waitlist management application for hosts and staff to manage customer queues and table flow.
 
+> Built as part of the [AI Dev Tools Zoomcamp 2026](https://courses.datatalks.club/ai-dev-tools-2026/) coursework.
+
 ## Overview
 
 Waitlist helps restaurant staff efficiently manage their waitlist, track parties, and streamline the seating process. The application is designed for host/staff use at the restaurant.
